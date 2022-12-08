@@ -19,41 +19,40 @@ def get_vs(row: int, col: int) -> int:
     if col >= max_col:
         return 0
 
+    clt_top = 0
+    clt_btm = max_row
+    clt_lft = 0
+    clt_rt = max_col
+
     # check from top
     for i in range(row - 1, -1, -1):
-        if forest[row][col] > forest[i][col]:
-            vis_from_top += 1
-        else:
-            if i != 0:
-                vis_from_top += 1
+        if forest[row][col] <= forest[i][col]:
+            clt_top = i
             break
+
     # check from bottom
     for i in range(row + 1, max_row + 1):
-        if forest[row][col] > forest[i][col]:
-            vis_from_bottom += 1
-        else:
-            if i < max_row:
-                vis_from_bottom += 1
+        if forest[row][col] <= forest[i][col]:
+            clt_btm = i
             break
 
     vis_from_left = 0
     vis_from_right = 0
     # check from left
     for i in range(col - 1, -1, -1):
-        if forest[row][col] > forest[row][i]:
-            vis_from_left += 1
-        else:
-            if i != 0:
-                vis_from_left += 1
+        if forest[row][col] <= forest[row][i]:
+            clt_lft = i
             break
     # check from right
     for i in range(col + 1, max_col + 1):
-        if forest[row][col] > forest[row][i]:
-            vis_from_right += 1
-        else:
-            if i < max_col:
-                vis_from_right += 1
+        if forest[row][col] <= forest[row][i]:
+            clt_rt = i
             break
+
+    vis_from_top = row - clt_top
+    vis_from_bottom = clt_btm - row
+    vis_from_left = col - clt_lft
+    vis_from_right = clt_rt - col
 
     vis = vis_from_top * vis_from_bottom * vis_from_left * vis_from_right
     return vis
@@ -62,7 +61,7 @@ def get_vs(row: int, col: int) -> int:
 def main():
     global forest
 
-    with open("example_input.txt") as f:
+    with open("input.txt") as f:
         for line in f.readlines():
             forest.append(line)
 
