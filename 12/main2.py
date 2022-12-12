@@ -1,82 +1,130 @@
-# --- Day 11: Monkey in the Middle ---
-# I HATE MODULO ARITHMETIC
-# GET OUT OF MY HEAD
-# I HATE MODULO ARITHMETIC
-# GET OUT OF MY HEAD
-# I HATE MODULO ARITHMETIC
-# GET OUT OF MY HEAD
-# I HATE MODULO ARITHMETIC
-# GET OUT OF MY HEAD
+# --- Day 12: Hill Climbing Algorithm ---
+# I was too tired to think of a good solution
+# have this brute force approach instead
+import heapq
+import copy
 
-monkes_nww = 1
+nodes = []
+max_x = 0
+max_y = 0
 
 
-class Monke:
-    global monkes_nww
+class Node:
+    global nodes
+    global max_x
+    global max_y
 
-    def __init__(self, op, test, true_target, false_target):
-        self.op = op
-        self.test = test
-        self.true_target = true_target
-        self.false_target = false_target
-        self.inspect_counter = 0
+    def __init__(self, _x, _y, height):
+        self.x = _x
+        self.y = _y
+        self.height = height
+        self.distance = 1000000
+        self.daddy = -1
+        self.visited = False
 
-    def test_item(self, item: int):
-        self.inspect_counter += 1
-        old = item
-        new = eval(self.op)
-        new_to_ret = new % monkes_nww
-        if new % self.test == 0:
-            return new_to_ret, self.true_target
-        else:
-            return new_to_ret, self.false_target
+    def set_parent(self, daddy):
+        self.daddy = daddy
+
+    def set_distance(self, dist):
+        self.distance = dist
+
+    def visit(self):
+        self.visited = True
+
+
+def dijkstra(start_pos):
+    global nodes
+    queue = []
+
+    heapq.heappush(queue, (nodes[start_pos].distance, start_pos))
+
+    while queue:
+        _, nodei = heapq.heappop(queue)
+        nodes[nodei].visit()
+
+        neighbours = []
+        # up
+        if nodes[nodei].x > 0:
+            if get_node(nodes[nodei].x - 1, nodes[nodei].y).height <= nodes[nodei].height + 1:
+                neighbours.append(get_node_pos(nodes[nodei].x - 1, nodes[nodei].y))
+
+        # down
+        if nodes[nodei].x < max_x - 1:
+            if get_node(nodes[nodei].x + 1, nodes[nodei].y).height <= nodes[nodei].height + 1:
+                neighbours.append(get_node_pos(nodes[nodei].x + 1, nodes[nodei].y))
+
+        # left
+        if nodes[nodei].y > 0:
+            if get_node(nodes[nodei].x, nodes[nodei].y - 1).height <= nodes[nodei].height + 1:
+                neighbours.append(get_node_pos(nodes[nodei].x, nodes[nodei].y - 1))
+
+        # right
+        if nodes[nodei].y < max_y - 1:
+            if get_node(nodes[nodei].x, nodes[nodei].y + 1).height <= nodes[nodei].height + 1:
+                neighbours.append(get_node_pos(nodes[nodei].x, nodes[nodei].y + 1))
+
+        for neighbour in neighbours:
+            if not nodes[neighbour].visited:
+                if nodes[neighbour].distance > nodes[nodei].distance + 1:
+                    nodes[neighbour].set_parent = nodei
+                    nodes[neighbour].distance = nodes[nodei].distance + 1
+                    heapq.heappush(queue, (nodes[neighbour].distance, neighbour))
+
+
+def get_node(x: int, y: int) -> Node:
+    global nodes
+    for node in nodes:
+        if node.x == x and node.y == y:
+            return node
+
+
+def get_node_pos(x: int, y: int) -> int:
+    global nodes
+    for i in range(len(nodes)):
+        if nodes[i].x == x and nodes[i].y == y:
+            return i
 
 
 def main():
-    monke_items = []
-    monkes = []
-    global monkes_nww
+    global nodes
+    global max_x
+    global max_y
+    heightmap = []
 
     with open("input.txt") as f:
-        lines = f.readlines()
-        for m_lines in range(0, len(lines), 7):
-            starting_items = lines[m_lines + 1][17:].strip().split(", ")
-            starting_items_as_int = []
-            for si in starting_items:
-                starting_items_as_int.append(int(si.strip()))
-            monke_items.append(starting_items_as_int)
-            operation = lines[m_lines + 2][18:].strip()
-            test = int(lines[m_lines + 3][20:].strip())
-            monkes_nww *= test
-            tt = int(lines[m_lines + 4][28:].strip())
-            tf = int(lines[m_lines + 5][29:].strip())
-            monke = Monke(operation, test, tt, tf)
-            monkes.append(monke)
+        for line in f.readlines():
+            heightmap.append(line.strip())
 
-    turns = 10000
-    for turn in range(turns):
-        for m_num in range(len(monkes)):
-            monke = monkes[m_num]
-            for i_num in range(len(monke_items[m_num])):
-                throw_to = monke.test_item(monke_items[m_num][i_num])
-                monke_items[m_num][i_num] = throw_to[0]
-                monke_items[throw_to[1]].append(monke_items[m_num][i_num])
-                monke_items[m_num][i_num] = -1
-            monke_items[m_num][:] = (value for value in monke_items[m_num] if value != -1)
+    max_x = len(heightmap)
+    max_y = len(heightmap[0])
 
-    print(monke_items)
-    two_best_monkes = [0, 0]
-    for mk in monkes:
-        if mk.inspect_counter > two_best_monkes[1]:
-            two_best_monkes[0] = two_best_monkes[1]
-            two_best_monkes[1] = mk.inspect_counter
-        elif mk.inspect_counter > two_best_monkes[0]:
-            two_best_monkes[0] = mk.inspect_counter
+    for line_n in range(len(heightmap)):
+        for cell in range(len(line)):
+            nodes.append(Node(line_n, cell, ord(heightmap[line_n][cell])))
 
-    print(two_best_monkes)
+    for i in range(len(nodes)):
+        if nodes[i].height == ord("S"):
+            nodes[i].height = ord("a")
+        if nodes[i].height == ord("E"):
+            nodes[i].height = ord("z") + 1
 
-    print(
-        f"Level of monkey business after {turns} rounds (with extra stress): {two_best_monkes[0] * two_best_monkes[1]}")
+    shortest_path_from_a = 10000
+
+    # brute force
+    for i in range(len(nodes)):
+        if nodes[i].height == ord("a") and nodes[i].y < 4:
+            print(f"{nodes[i].x}:{nodes[i].y}")
+            nodes_tmp = copy.deepcopy(nodes)
+            nodes[i].distance = 0
+            dijkstra(i)
+            for node in nodes:
+                if node.height == ord("z") + 1:
+                    if node.distance < shortest_path_from_a:
+                        shortest_path_from_a = node.distance
+                    break
+            nodes = copy.deepcopy(nodes_tmp)
+
+    print(f"Shortest path from any a position to E: {shortest_path_from_a}")
 
 
 if __name__ == "__main__":
