@@ -1,5 +1,6 @@
 # --- Day 16: Proboscidea Volcanium ---
-# I am an idiot. I forgot about cave loops. Distance algorithm needs to be rewritten
+import heapq as heap
+
 valves = []
 usable_valves_i = []
 total_pressure_leaked = 0
@@ -26,32 +27,44 @@ def get_valve_index(name):
             return i
 
 
-def dst_help(start: int, end: int, distances: [int], parents: [str]):
-    if start == end:
-        return "end"
-    for tunel in valves[start].tunnels:
-        if get_valve_index(tunel) != start and distances[get_valve_index(tunel)] == -1:
-            distances[get_valve_index(tunel)] = distances[start] + 1
-            if dst_help(get_valve_index(tunel), end, distances, parents) != "":
-                return tunel
-    return ""
-
-
 def find_distance(start: int, end: int):
     global valves
-    distances = [-1 for i in range(len(valves))]
-    parents = ["" for i in range(len(valves))]
+    visited = set()
+    parents = [-1 for i in range(len(valves))]
+    pq = []
+    distances = [1000000 for i in range(len(valves))]
     distances[start] = 0
-    direction = dst_help(start, end, distances, parents)
-    return direction, distances[end]
+    heap.heappush(pq, (0, start))
+
+    while pq:
+        _, node = heap.heappop(pq)
+        visited.add(node)
+
+        for tunnel in valves[node].tunnels:
+            if tunnel in visited:
+                continue
+            new_distance = distances[node] + 1
+            if distances[get_valve_index(tunnel)] > new_distance:
+                parents[get_valve_index(tunnel)] = node
+                distances[get_valve_index(tunnel)] = new_distance
+                heap.heappush(pq, (new_distance, get_valve_index(tunnel)))
+
+    i = end
+    while parents[i] != start:
+        i = parents[i]
+    return i, distances[end]
 
 
 def pass_time(time):
     global valves
     global total_pressure_leaked
+    minute_leak = 0
     for valve in valves:
         if valve.state:
-            total_pressure_leaked += valve.flow * time
+            minute_leak += valve.flow * time
+    total_pressure_leaked += minute_leak
+    print(f"ML:{minute_leak}")
+    return minute_leak
 
 
 def find_best_choice(position, time_left):
@@ -61,8 +74,12 @@ def find_best_choice(position, time_left):
     if len(usable_valves_i) == 0:
         return -1
     for closed_valve in usable_valves_i:
-        value = valves[closed_valve].flow * (time_left - (find_distance(get_valve_index(position), closed_valve)[1]-1))
-        # value = time_left - find_distance(get_valve_index(position), closed_valve)[1]
+        dst = find_distance(get_valve_index(position), closed_valve)[1] - 1
+        if dst == 0:
+            value = valves[closed_valve].flow * 2
+        else:
+            value = valves[closed_valve].flow / dst
+
         if value > best_value:
             best_value = value
             best_valve = closed_valve
@@ -107,8 +124,8 @@ def main():
         if best_choice >= 0:
             valve_to_open = valves[best_choice].name
             direction, distance = find_distance(get_valve_index(position), get_valve_index(valve_to_open))
-            print(f"P:{position} T:{valve_to_open} D:{direction} D:{distance}")
-            position = direction
+            print(f"P:{position} T:{valve_to_open} D:{valves[direction].name} D:{distance}")
+            position = valves[direction].name
             pass_time(1)
             minute += 1
         else:
